@@ -22,5 +22,5 @@ void TLSTest(){
 int main() {
 	//TestObjectPool();
 	//TLSTest();
-	cout << sizeof(PAGE_ID);
+	//cout << sizeof(PAGE_ID);
 }

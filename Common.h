@@ -6,6 +6,7 @@
 #include <mutex>
 #include <assert.h>
 #include <time.h>
+#include <windows.h>
 using std::cout;
 using std::endl;
 
@@ -18,6 +19,11 @@ static const size_t MAX_BYTES = 256 * 1024;
 //thread_cache和central cache中自由链表哈希桶的表大小
 static const size_t NFREE_LISTS = 208;
 
+//Page cache中哈希桶的表大小
+static const size_t NPAGES = 129;
+
+//页大小转换偏移量，一页为2^13B，也就是8KB    将大小右移13位可得到需要多少页
+static const size_t PAGE_SHIFT = 13;
 
 //条件编译
 //32位环境下，_WIN32有定义，_WIN64无定义
@@ -29,6 +35,18 @@ typedef size_t PAGE_ID;
 #endif // _WIN64
 
 
+//直接去堆上申请k页的空间  
+inline static void* SystemAlloc(size_t kpage)
+{
+#ifdef _WIN32
+	void* ptr = VirtualAlloc(0, kpage * (1 << PAGE_SHIFT), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+#else
+	//在linux下申请 
+#endif
+	if (ptr == nullptr)
+		throw std::bad_alloc();
+	return ptr;
+}
 
 //获取内存对象中存储的头4bit或者8bit值，即链接下一个对象的地址的引用 *&
 static inline void*& NextObj(void* obj) {
@@ -45,6 +63,11 @@ public:
 		assert(obj);
 		NextObj(obj) = _freeList;
 		_freeList = obj;
+	}
+
+	void PushRange(void* start, void* end) {
+		NextObj(end) = _freeList;
+		_freeList = start;
 	}
 
 	void* Pop() {
@@ -148,7 +171,6 @@ public:
 	static size_t NumMoveSize(size_t size) {
 		assert(size > 0);
 
-
 		//num介于2到512之间
 		//大对象一次获得的少，小对象一次获得的多,避免内存的浪费
 		int num = MAX_BYTES / size;
@@ -158,6 +180,23 @@ public:
 			num = 512;
 
 		return num;
+	}
+
+	//central cache一次从page cache获取多少页  函数参数size指单个小内存块大小
+	//单个对象 8B...
+	// ...
+	//单个对象 256KB...
+	static size_t NumMovePage(size_t size) {
+		assert(size > 0);
+		size_t num = NumMoveSize(size);
+		size_t bytes = num * size;//一共需要多少byte
+
+		int pageNum = bytes >> PAGE_SHIFT;
+
+		if (pageNum == 0) {//不满一页则调一页
+			pageNum = 1;
+		}
+		return pageNum;
 	}
 
 private:
@@ -189,6 +228,19 @@ public:
 		_head->_prev = _head;
 	}
 
+
+	Span* Begin() {
+		return _head->_next;
+	}
+	Span* End() {
+		return _head;
+	}
+
+	bool IsEmpty() {
+		return _head == _head->_next;
+	}
+
+
 	void Insert(Span* pos, Span* newSpan) {
 		assert(pos);
 		assert(newSpan);
@@ -200,7 +252,7 @@ public:
 		pos->_prev = newSpan;
 	}
 
-	void Erase(Span* pos) {
+	void Erase(Span* pos) { //erase并没有delete掉pos,只是让其从链中脱离
 		assert(pos);
 		assert(pos != _head);//不能删头结点
 
@@ -209,7 +261,24 @@ public:
 		pos->_next->_prev = prev;
 
 	}
+
+	//头插
+	void PushFront(Span* span)
+	{
+		Insert(Begin(), span);
+	}
+
+	//返回头
+	Span* PopFront()
+	{
+		Span* front = _head->_next;
+		Erase(front);
+		return front;
+	}
+
+
 private:
 	Span* _head;
+public:
 	std::mutex _mtx;//桶锁
 };

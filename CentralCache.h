@@ -9,6 +9,9 @@ public:
 		return &_sInst;
 	}
 
+	//从中心缓存获取一个非空的Span
+	Span* GetOneSpan(SpanList& list,size_t size);
+
 	//从中心缓存获取一定数量的对象给thread cache 
 	size_t FetchRangObj(void*& start, void*& end, size_t batchNum, size_t size);
 

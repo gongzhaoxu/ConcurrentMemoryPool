@@ -1,5 +1,10 @@
 #include "ThreadCache.h"
 #include "CentralCache.h"
+
+//windows.h中有min max宏定义，会将algorithm中的min max函数模版当做宏来处理，需要在此解除宏
+#undef max
+#undef min
+
 void* ThreadCache::Allocate(size_t size) {
 
 	assert(size <= MAX_BYTES);
@@ -24,14 +29,16 @@ void ThreadCache::Deallocate(void* ptr, size_t size) {
 
 }
 
-//当申请的内存大于256KB时，像central cache申请
+//当申请的内存大于256KB时，像central cache申请,然后将申请的内存块插入到_freeLists[index]中
+//并且返回头一个内存块。
 void* ThreadCache::FetchFromCentralCache(size_t index, size_t size) {
 	//采取慢开始反馈策略申请
 	// 1. 最开始不会向central cache要太多，因为太多了可能用不完浪费
 	// 2. 若不断有需求，则batchNum不断增长，直到上限NumMoveSize;
 	// 3. size越大，一次向central cache要的batchNum越大
 	// 5. size越小，一次向central cache要的batchNum越小
-	size_t batchNum = std::min(_freeLists[index].MaxSize(), SizeCLass::NumMoveSize(size));
+	size_t batchNum = std::min( _freeLists[index].MaxSize(), SizeCLass::NumMoveSize(size) );
+
 	if (_freeLists[index].MaxSize() == batchNum) {
 		_freeLists[index].MaxSize() += 1;
 	}
@@ -41,10 +48,17 @@ void* ThreadCache::FetchFromCentralCache(size_t index, size_t size) {
 
 	size_t actualNum = CentralCache::GetInstance()->FetchRangObj(start, end, batchNum, size);
 	assert(actualNum > 1);//至少要给thread cache一个
+	if (actualNum == 1) {
+		assert(start == end);
+	}
+	else {
+		//[start,end]是thread cache向central cache申请的内存块范围
+		//我们需要将[start,end]插入到_freeLists[index]中，并且返回第一个内存块
+		//下面那行代码等价于
+			/*	_freeLists[index].PushRange(start, end);
+				return _freeLists[index].Pop();			*/
 
-
-
-	
-
-	return nullptr;
+		_freeLists[index].PushRange(NextObj(start), end);
+	}
+	return start;
 }

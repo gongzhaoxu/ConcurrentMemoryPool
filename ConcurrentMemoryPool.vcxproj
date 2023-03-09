@@ -128,6 +128,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CentralCache.cpp" />
+    <ClCompile Include="PageCache.cpp" />
     <ClCompile Include="Unitest.cpp" />
     <ClCompile Include="ThreadCache.cpp" />
   </ItemGroup>
@@ -136,6 +137,7 @@
     <ClInclude Include="Common.h" />
     <ClInclude Include="ConcurrentAlloc.h" />
     <ClInclude Include="ObjectPool.h" />
+    <ClInclude Include="PageCache.h" />
     <ClInclude Include="ThreadCache.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
