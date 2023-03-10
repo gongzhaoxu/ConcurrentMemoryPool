@@ -12,7 +12,7 @@ Span* PageCache::NewSpan(size_t k) {
 	}
 
 	//再检查一下后面的桶有没有span，如果有，则可以进行切分
-	for (size_t i = k + 1; k < NPAGES; i++) {
+	for (size_t i = k + 1; i < NPAGES; i++) {
 		if (!_spanLists[i].IsEmpty()) {
 			//开始切分,将i页的span切分成k页的span和一个i-k页的span
 			//k页的span返回给central cache

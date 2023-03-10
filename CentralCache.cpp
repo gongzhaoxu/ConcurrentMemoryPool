@@ -41,11 +41,11 @@ Span* CentralCache::GetOneSpan(SpanList& list, size_t size) {
 	startAddress += size;
 	//2.尾插
 	void* tail = span->_freeList;
+	
 	while (startAddress < endAddress) {
 		NextObj(tail) = startAddress;
 		tail = NextObj(tail);
 		startAddress += size;
-
 	}
 
 	//切好span以后，需要把span挂到桶里面去的时候再加锁
@@ -80,8 +80,10 @@ size_t CentralCache::FetchRangObj(void*& start, void*& end, size_t batchNum, siz
 		i++;
 		actualNum++;
 	}
+
 	span->_freeList = NextObj(end);
 	NextObj(end) = nullptr;
+	span->_useCount += actualNum;
 
 	_spanLists[index]._mtx.unlock();//解桶锁
 
@@ -89,3 +91,7 @@ size_t CentralCache::FetchRangObj(void*& start, void*& end, size_t batchNum, siz
 }
 
 
+//将一定数量的内存块释放到Span中
+void CentralCache::ReleaseListToSpans(void* start, size_t size) {
+
+}

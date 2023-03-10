@@ -27,6 +27,12 @@ void ThreadCache::Deallocate(void* ptr, size_t size) {
 	size_t index = SizeCLass::Index(size);//计算映射到哪个桶
 	_freeLists[index].Push(ptr);//头插
 
+	//检查当链表长度大于一次批量申请的内存长度时就还一段list给central cache
+	if (_freeLists[index].Size() > _freeLists[index].MaxSize()) {
+		ListTooLong(_freeLists[index], size);
+	}
+
+
 }
 
 //当申请的内存大于256KB时，像central cache申请,然后将申请的内存块插入到_freeLists[index]中
@@ -47,7 +53,7 @@ void* ThreadCache::FetchFromCentralCache(size_t index, size_t size) {
 	void* end = nullptr;
 
 	size_t actualNum = CentralCache::GetInstance()->FetchRangObj(start, end, batchNum, size);
-	assert(actualNum > 1);//至少要给thread cache一个
+	assert(actualNum > 0);//至少要给thread cache一个
 	if (actualNum == 1) {
 		assert(start == end);
 	}
@@ -58,7 +64,16 @@ void* ThreadCache::FetchFromCentralCache(size_t index, size_t size) {
 			/*	_freeLists[index].PushRange(start, end);
 				return _freeLists[index].Pop();			*/
 
-		_freeLists[index].PushRange(NextObj(start), end);
+		_freeLists[index].PushRange(NextObj(start), end,actualNum-1);
 	}
 	return start;
+}
+
+//释放对象时，链表过长时，回收内存回到中心缓存
+void ThreadCache::ListTooLong(FreeList& list, size_t size) {
+	void* start = nullptr;
+	void* end = nullptr;
+	list.PopRange(start, end, list.MaxSize());
+
+	CentralCache::GetInstance()->ReleaseListToSpans(start, size);
 }

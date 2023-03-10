@@ -129,7 +129,7 @@
   <ItemGroup>
     <ClCompile Include="CentralCache.cpp" />
     <ClCompile Include="PageCache.cpp" />
-    <ClCompile Include="Unitest.cpp" />
+    <ClCompile Include="UnitTest.cpp" />
     <ClCompile Include="ThreadCache.cpp" />
   </ItemGroup>
   <ItemGroup>

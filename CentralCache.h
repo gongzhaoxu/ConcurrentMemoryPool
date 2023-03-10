@@ -15,6 +15,8 @@ public:
 	//从中心缓存获取一定数量的对象给thread cache 
 	size_t FetchRangObj(void*& start, void*& end, size_t batchNum, size_t size);
 
+	//将一定数量的内存块释放到Span中
+	void ReleaseListToSpans(void* start, size_t size);
 private:
 	SpanList _spanLists[NFREE_LISTS];
 private:

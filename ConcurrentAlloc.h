@@ -9,7 +9,7 @@ static void* ConcurrentAlloc(size_t size) {
 	if (tls_threadcache == nullptr) {
 		tls_threadcache = new ThreadCache;
 	}
-	cout << std::this_thread::get_id() << " : " << tls_threadcache << endl;
+	//cout << std::this_thread::get_id() << " : " << tls_threadcache << endl;
 
 	return tls_threadcache->Allocate(size);
 }
