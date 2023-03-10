@@ -22,6 +22,7 @@ static void* ConcurrentAlloc(size_t size) {
 
 		PageCache::GetInstance()->_pageMtx.lock();
 		Span* span = PageCache::GetInstance()->NewSpan(kPages);
+		span->_objectSize = size;
 		PageCache::GetInstance()->_pageMtx.unlock();
 
 		void* ptr = (void*)(span->_pageID << PAGE_SHIFT);
@@ -42,7 +43,9 @@ static void* ConcurrentAlloc(size_t size) {
 }
 
 //释放内存
-static void ConcurrentFree(void* ptr, size_t size) {
+static void ConcurrentFree(void* ptr) {
+	Span* span = PageCache::GetInstance()->MapObjectToSpan(ptr);//获取ptr所在的span
+	size_t size = span->_objectSize;
 
 	if (size > MAX_BYTES) {//大于256KB的释放
 		Span* span = PageCache::GetInstance()->MapObjectToSpan(ptr);

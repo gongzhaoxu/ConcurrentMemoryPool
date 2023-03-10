@@ -24,6 +24,7 @@ Span* CentralCache::GetOneSpan(SpanList& list, size_t size) {
 	PageCache::GetInstance()->_pageMtx.lock();
 	Span* span = PageCache::GetInstance()->NewSpan(SizeCLass::NumMovePage(size));
 	span->_isUsed = true;
+	span->_objectSize = size;
 	PageCache::GetInstance()->_pageMtx.unlock();
 	//从NewSpan()函数出来解锁page cache的锁后，不需要给central cache加桶锁
 	//因为其他线程拿不到这个span

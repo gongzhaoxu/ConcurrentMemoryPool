@@ -243,6 +243,8 @@ public:
 	size_t _pageID = 0;//大块内存起始页的页号
 	size_t _n = 0;//页的数量
 
+	size_t _objectSize = 0;//切好的小对象的大小，即span挂的小内存块的大小，增加此属性可在释放对象时优化为不传对象大小
+
 	Span* _next = nullptr;//Span双向链表的的结构
 	Span* _prev = nullptr;
 

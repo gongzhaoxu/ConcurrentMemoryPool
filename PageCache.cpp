@@ -75,6 +75,8 @@ Span* PageCache::NewSpan(size_t k) {
 Span* PageCache::MapObjectToSpan(void* obj) {
 	//通过内存块的地址计算所在页号，然后通过page_id和span的映射Map即可知道内存块在哪个span
 	PAGE_ID id = ((PAGE_ID)obj >> PAGE_SHIFT);
+
+	std::unique_lock<std::mutex>lock(_pageMtx);
 	auto ret = _idSpanMap.find(id);
 	if (ret != _idSpanMap.end()) {
 		return ret->second;
