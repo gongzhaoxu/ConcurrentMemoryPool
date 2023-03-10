@@ -30,6 +30,15 @@ Span* PageCache::NewSpan(size_t k) {
 
 			//将i-k页的span挂到第i-k个桶中去
 			_spanLists[iSpan->_n].PushFront(iSpan);
+			//存储iSpan的首位页号和跟iSpan的映射，方便pagecache回收	内存时进行合并查找
+			_idSpanMap[iSpan->_pageID] = iSpan;
+			_idSpanMap[iSpan->_pageID + iSpan->_n - 1] = iSpan;
+
+
+			//建立page_id和span的映射，方便central cache回收小块内存时，查找对应的span
+			for (PAGE_ID i = 0; i < kSpan->_n; i++) {
+				_idSpanMap[kSpan->_pageID + i] = kSpan;
+			}
 
 			//返回k页的span
 			return kSpan;
@@ -44,5 +53,84 @@ Span* PageCache::NewSpan(size_t k) {
 	bigSpan->_n = NPAGES - 1;
 
 	_spanLists[bigSpan->_n].PushFront(bigSpan);
-	return NewSpan(k); 
+	return NewSpan(k);
+}
+
+//获取内存块和Span的映射
+Span* PageCache::MapObjectToSpan(void* obj) {
+	//通过内存块的地址计算所在页号，然后通过page_id和span的映射Map即可知道内存块在哪个span
+	PAGE_ID id = ((PAGE_ID)obj >> PAGE_SHIFT);
+	auto ret = _idSpanMap.find(id);
+	if (ret != _idSpanMap.end()) {
+		return ret->second;
+	}
+	else {
+		assert(false);//不可能找不到
+		return nullptr;
+	}
+}
+
+//将central cache的span归还给page cache
+void PageCache::ReleaseSpanToPageCache(Span* span) {
+	//对span前后的页尝试进行合并，缓解内存碎片问题
+
+
+	//向前合并
+	while (true) {
+		PAGE_ID prevId = span->_pageID - 1;
+		auto ret = _idSpanMap.find(prevId);
+		//1.前面页号没有，不合并了
+		if (ret == _idSpanMap.end()) {
+			break;
+		}
+		Span* prevSpan = ret->second;
+		//2.前面相邻页的span在使用，不合并了
+		if (prevSpan->_isUsed == true) {
+			break;
+		}
+		//3.合并出超过128页（NPAGES-1）的span没办法管理，也不合并
+		if (prevSpan->_n + span->_n > NPAGES - 1) {
+			break;
+		}
+
+		//4.合并
+		span->_pageID = prevSpan->_pageID;
+		span->_n += prevSpan->_n;
+
+		_spanLists[prevSpan->_n].Erase(prevSpan);
+		delete prevSpan;
+	}
+
+	//向后合并
+	while (true) {
+		PAGE_ID nextID = span->_pageID + span->_n - 1;
+		auto ret = _idSpanMap.find(nextID);
+		//1.后面页号没有，不合并了
+		if (ret == _idSpanMap.end()) {
+			break;
+		}
+		Span* nextSpan = ret->second;
+		//2.后面相邻页的span在使用，不合并了
+		if (nextSpan->_isUsed == true) {
+			break;
+		}
+		//3.合并出超过128页（NPAGES-1）的span没办法管理，也不合并
+		if (nextSpan->_n + span->_n > NPAGES - 1) {
+			break;
+		}
+
+		//4.合并
+		span->_n += nextSpan->_n;
+
+		_spanLists[nextSpan->_n].Erase(nextSpan);
+
+		delete nextSpan;
+	}
+
+	//合并后将span挂起来
+	_spanLists[span->_n].PushFront(span);
+	span->_isUsed = false;
+	_idSpanMap[span->_pageID] = span;
+	_idSpanMap[span->_pageID + span->_n - 1] = span;
+
 }

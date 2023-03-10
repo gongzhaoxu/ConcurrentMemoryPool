@@ -6,6 +6,7 @@
 #include <mutex>
 #include <assert.h>
 #include <time.h>
+#include <unordered_map>
 #include <windows.h>
 using std::cout;
 using std::endl;
@@ -238,6 +239,8 @@ public:
 
 	size_t _useCount = 0;//切好小块内存，被分配给thread cache的计数
 	void* _freeList = nullptr;//切好的小块内存的自由链表
+
+	bool _isUsed=false;//是否在被使用
 };
 
 //带头双向循环链表，带头结点，方便O(1)增删
