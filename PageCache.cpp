@@ -4,7 +4,20 @@ PageCache PageCache::_sInst;
 
 //给CentralCache k页大小的Span
 Span* PageCache::NewSpan(size_t k) {
-	assert(k > 0 && k < NPAGES);
+	assert(k > 0);
+
+	//处理>128页的大内存申请,向堆申请
+	if (k > NPAGES - 1) {
+		void* ptr = SystemAlloc(k);
+		//Span* span = new Span;
+		Span* span = _spanPool.New();
+		span->_pageID = (PAGE_ID)(ptr) >> PAGE_SHIFT;
+		span->_n = k;
+
+		_idSpanMap[span->_pageID] = span;
+
+		return span;
+	}
 
 	//先检查page cache第k个桶有没有span
 	if (!_spanLists[k].IsEmpty()) {
@@ -18,7 +31,8 @@ Span* PageCache::NewSpan(size_t k) {
 			//k页的span返回给central cache
 			//i-k页的span挂到第i-k个桶中去
 			Span* iSpan = _spanLists[i].PopFront();
-			Span* kSpan = new Span;
+			//Span* kSpan = new Span;
+			Span* kSpan = _spanPool.New();
 
 			//在iSpan的头部切一个k页下来
 			kSpan->_pageID = iSpan->_pageID;
@@ -47,7 +61,8 @@ Span* PageCache::NewSpan(size_t k) {
 
 	//走到这一步就说明后面找不到大页的span去切分了
 	//这时就去找堆要一个128页的span
-	Span* bigSpan = new Span;
+	//Span* bigSpan = new Span;
+	Span* bigSpan = _spanPool.New();
 	void* ptr = SystemAlloc(NPAGES - 1);
 	bigSpan->_pageID = (PAGE_ID)ptr >> 13;
 	bigSpan->_n = NPAGES - 1;
@@ -72,9 +87,17 @@ Span* PageCache::MapObjectToSpan(void* obj) {
 
 //将central cache的span归还给page cache
 void PageCache::ReleaseSpanToPageCache(Span* span) {
+
+	if (span->_n > NPAGES - 1) {//说明是找堆要的大内存
+		void* ptr = (void*)(span->_pageID << PAGE_SHIFT);
+		SystemFree(ptr);
+		//delete span;
+		_spanPool.Delete(span);
+		return;
+	}
+
+
 	//对span前后的页尝试进行合并，缓解内存碎片问题
-
-
 	//向前合并
 	while (true) {
 		PAGE_ID prevId = span->_pageID - 1;
@@ -98,12 +121,13 @@ void PageCache::ReleaseSpanToPageCache(Span* span) {
 		span->_n += prevSpan->_n;
 
 		_spanLists[prevSpan->_n].Erase(prevSpan);
-		delete prevSpan;
+		//delete prevSpan;
+		_spanPool.Delete(prevSpan);
 	}
 
 	//向后合并
 	while (true) {
-		PAGE_ID nextID = span->_pageID + span->_n - 1;
+		PAGE_ID nextID = span->_pageID + span->_n;
 		auto ret = _idSpanMap.find(nextID);
 		//1.后面页号没有，不合并了
 		if (ret == _idSpanMap.end()) {
@@ -124,7 +148,8 @@ void PageCache::ReleaseSpanToPageCache(Span* span) {
 
 		_spanLists[nextSpan->_n].Erase(nextSpan);
 
-		delete nextSpan;
+		//delete nextSpan;
+		_spanPool.Delete(nextSpan);
 	}
 
 	//合并后将span挂起来

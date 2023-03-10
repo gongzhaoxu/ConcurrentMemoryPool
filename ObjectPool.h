@@ -18,7 +18,7 @@ public:
 			//如果剩余内存小于一个对象，则重新开辟大块内存
 			if (_remainBytes < sizeof(T)) {
 				_remainBytes = 128 * 1024;
-				_memory = (char*)malloc(128 * 1024);//128KB
+				_memory = (char*)SystemAlloc(_remainBytes >> PAGE_SHIFT);//128KB
 				if (_memory == nullptr) {//申请失败则抛出异常
 					throw std::bad_alloc();
 				}
@@ -51,57 +51,3 @@ private:
 	void* _freeList = nullptr;//还回内存过程中的自由链表的头指针
 
 };
-
-struct TreeNode {
-	int _val;
-	TreeNode* _left;
-	TreeNode* _right;
-
-	TreeNode()
-		:_val(0)
-		, _left(nullptr)
-		, _right(nullptr)
-	{}
-};
-
-void TestObjectPool() {
-
-	//测试的轮次
-	const size_t Rounds = 3;
-	//每次申请释放次数
-	const size_t N = 100000;
-
-	//测试new delete效率
-	std::vector<TreeNode*>v1;
-	v1.reserve(N);
-	size_t begin1 = clock();
-	for (int i = 0; i < Rounds; i++) {
-		for (int j = 0; j < N; j++) {
-			v1.push_back(new TreeNode);
-		}
-		for (int j = 0; j < N; j++) {
-			delete v1[j];
-		}
-		v1.clear();
-	}
-	size_t end1 = clock();
-
-	//测试定长内存池效率
-	std::vector<TreeNode*>v2;
-	v2.reserve(N);
-	ObjectPool<TreeNode>TNPool;
-	size_t begin2 = clock();
-	for (int i = 0; i < Rounds; i++) {
-		for (int j = 0; j < N; j++) {
-			v2.push_back(TNPool.New());
-		}
-		for (int j = 0; j < N; j++) {
-			TNPool.Delete(v2[j]);
-		}
-		v2.clear();
-	}
-	size_t end2 = clock();
-
-	cout << "new cost time = " << end1 - begin1 << endl;
-	cout << "object pool cost time = " << end2 - begin2 << endl;
-}

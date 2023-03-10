@@ -28,7 +28,7 @@ void ThreadCache::Deallocate(void* ptr, size_t size) {
 	_freeLists[index].Push(ptr);//头插
 
 	//检查当链表长度大于一次批量申请的内存长度时就还一段list给central cache
-	if (_freeLists[index].Size() > _freeLists[index].MaxSize()) {
+	if (_freeLists[index].Size() >= _freeLists[index].MaxSize()) {
 		ListTooLong(_freeLists[index], size);
 	}
 

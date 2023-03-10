@@ -1,5 +1,7 @@
 #pragma once
 #include "Common.h"
+#include "ObjectPool.h"
+
 
 //全局只有一个PageCache，因此可以使用单例饿汉模式
 class PageCache {
@@ -21,8 +23,11 @@ public:
 private:
 
 	SpanList _spanLists[NPAGES];
+	ObjectPool<Span> _spanPool;
+
 	//页号与span的映射
 	std::unordered_map<PAGE_ID, Span*>_idSpanMap;
+
 	PageCache() {}
 	PageCache(const PageCache&) = delete;
 

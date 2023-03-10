@@ -49,6 +49,16 @@ inline static void* SystemAlloc(size_t kpage)
 	return ptr;
 }
 
+inline static void SystemFree(void* ptr)
+{
+#ifdef _WIN32
+	VirtualFree(ptr, 0, MEM_RELEASE);
+#else
+	//linux下的逻辑
+#endif
+}
+
+
 //获取内存对象中存储的头4bit或者8bit值，即链接下一个对象的地址的引用 *&
 static inline void*& NextObj(void* obj) {
 	return *(void**)obj;
@@ -74,7 +84,7 @@ public:
 	}
 
 	void PopRange(void*& start, void*& end, size_t n) {
-		assert(n >= _size);
+		assert(n <= _size);
 		start = _freeList;
 		end = start;
 		for (size_t i = 0; i < n - 1; i++) {
@@ -110,7 +120,7 @@ public:
 private:
 	void* _freeList = nullptr;
 	size_t _maxSize = 1;
-	size_t _size;
+	size_t _size = 0;
 };
 
 
@@ -155,8 +165,7 @@ public:
 			return _RoundUp(size, 8 * 1024);
 		}
 		else {
-			assert(false);
-			return -1;
+			return _RoundUp(size, 1<<PAGE_SHIFT);
 		}
 	}
 	//align_shift是对齐数的偏移量，如对齐数是8KB，偏移量就是13
