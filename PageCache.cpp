@@ -21,7 +21,16 @@ Span* PageCache::NewSpan(size_t k) {
 
 	//先检查page cache第k个桶有没有span
 	if (!_spanLists[k].IsEmpty()) {
-		return _spanLists->PopFront();
+
+		Span* kSpan = _spanLists[k].PopFront();
+
+		//建立page_id和span的映射，方便central cache回收小块内存时，查找对应的span
+		for (PAGE_ID i = 0; i < kSpan->_n; i++) {
+			_idSpanMap[kSpan->_pageID + i] = kSpan;
+		}
+
+		//返回k页的span
+		return kSpan;
 	}
 
 	//再检查一下后面的桶有没有span，如果有，则可以进行切分

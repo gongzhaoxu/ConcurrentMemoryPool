@@ -35,7 +35,7 @@ static void* ConcurrentAlloc(size_t size) {
 			//tls_threadcache = new ThreadCache;
 			tls_threadcache = tcPool.New();
 		}
-		cout << std::this_thread::get_id() << " : " << tls_threadcache << endl;
+		//cout << std::this_thread::get_id() << " : " << tls_threadcache << endl;
 
 		return tls_threadcache->Allocate(size);
 	}

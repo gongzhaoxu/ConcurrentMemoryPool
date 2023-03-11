@@ -27,6 +27,9 @@
     <ClCompile Include="PageCache.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="BenchMark.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ObjectPool.h">

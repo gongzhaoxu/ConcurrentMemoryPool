@@ -6,6 +6,7 @@
 #include <mutex>
 #include <assert.h>
 #include <time.h>
+#include <atomic>
 #include <unordered_map>
 #include <windows.h>
 using std::cout;
@@ -80,6 +81,19 @@ public:
 	void PushRange(void* start, void* end,size_t n) {
 		NextObj(end) = _freeList;
 		_freeList = start;
+
+		//测试验证加条件断点
+		/*int i = 0;
+		void* cur = start;
+		while (cur) {
+			cur = NextObj(cur);
+			i++;
+		}
+
+		if (i != n) {
+			int debug = 999;
+		}*/
+
 		_size += n;
 	}
 
@@ -290,6 +304,12 @@ public:
 	void Erase(Span* pos) { //erase并没有delete掉pos,只是让其从链中脱离
 		assert(pos);
 		assert(pos != _head);//不能删头结点
+
+		//1. 条件断点--调试技巧
+		//2. 查看栈帧
+		/*if (pos == _head) {
+			int _debug = 0;
+		}*/
 
 		Span* prev = pos->_prev;
 		prev->_next = pos->_next;

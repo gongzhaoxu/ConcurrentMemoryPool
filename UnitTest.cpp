@@ -145,12 +145,12 @@ void TestObjectPool() {
 	cout << "object pool cost time = " << end2 - begin2 << endl;
 }
 
-int main() {
-	//TestObjectPool();
-	//TLSTest();
-	//cout << sizeof(PAGE_ID);
-	ConcurrenetAllocTest1();
-	//TestMultiThread();
-	BigAlloc();
-
-}
+//int main() {
+//	//TestObjectPool();
+//	//TLSTest();
+//	//cout << sizeof(PAGE_ID);
+//	ConcurrenetAllocTest1();
+//	//TestMultiThread();
+//	BigAlloc();
+//
+//}

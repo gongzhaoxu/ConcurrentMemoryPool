@@ -16,7 +16,6 @@ Span* CentralCache::GetOneSpan(SpanList& list, size_t size) {
 		}
 	}
 
-
 	//先把central cache的桶锁解了，这样如果其他进程释放内存回来不会阻塞
 	list._mtx.unlock();
 
@@ -49,6 +48,20 @@ Span* CentralCache::GetOneSpan(SpanList& list, size_t size) {
 		tail = NextObj(tail);
 		startAddress += size;
 	}
+	NextObj(tail) = nullptr;
+
+	//条件断点
+	//疑似死循环： 则-> 调试->全部中断,程序会在运行的地方停下。
+	/*int j = 0;
+	void* cur = span->_freeList;
+	while (cur) {
+		cur = NextObj(cur);
+		j++;
+	}
+
+	if (j != bytes/size) {
+		int debug = 999;
+	}*/
 
 	//切好span以后，需要把span挂到桶里面去的时候再加锁
 	list._mtx.lock();
@@ -86,6 +99,20 @@ size_t CentralCache::FetchRangObj(void*& start, void*& end, size_t batchNum, siz
 	span->_freeList = NextObj(end);
 	NextObj(end) = nullptr;
 	span->_useCount += actualNum;
+
+	//条件断点
+
+	/*int j = 0;
+	void* cur = start;
+	while (cur) {
+		cur = NextObj(cur);
+		j++;
+	}
+
+	if (j != actualNum) {
+		int debug = 999;
+	}*/
+
 
 	_spanLists[index]._mtx.unlock();//解桶锁
 
