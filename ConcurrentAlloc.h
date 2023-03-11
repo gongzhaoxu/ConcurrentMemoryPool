@@ -48,8 +48,6 @@ static void ConcurrentFree(void* ptr) {
 	size_t size = span->_objectSize;
 
 	if (size > MAX_BYTES) {//大于256KB的释放
-		Span* span = PageCache::GetInstance()->MapObjectToSpan(ptr);
-
 		PageCache::GetInstance()->_pageMtx.lock();
 		PageCache::GetInstance()->ReleaseSpanToPageCache(span);
 		PageCache::GetInstance()->_pageMtx.unlock();
