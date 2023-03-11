@@ -45,7 +45,7 @@ concurrent memory pool主要由以下3个部分构成：
 
 ### 1.ThreadCache
 
-![ThreadCache](https://github.com/gongzhaoxu/ConcurrentMemoryPool/img/ThreadCache.png)
+![ThreadCache](https://raw.githubusercontent.com/gongzhaoxu/ConcurrentMemoryPool/master/img/ThreadCache.png)
 
 ThreadCache是哈希桶结构，一共有208个桶，每个桶对应了一个自由链表。每个自由链表中，分配的块的大小是固定的。每个桶是按照自由链表中内存块的大小来对应映射位置的。 如果从1B到256KB每个字节都分配一个哈希桶，这并不现实。因此，可以采用对齐数的方式。
 
@@ -71,7 +71,7 @@ central cache也是一个哈希桶结构，他的哈希桶的映射关系跟thre
 
 这里有一个新的概念:Span。所谓Span，是一个若干页大小的内存对象。Span用带头双向循环链表的形式串联。方便后续过程中PageCache对Span的回收。Span里面挂的是一个freelist链表结构，是将Span以对象大小进行切割。比如，8B的桶下挂的Span，里面的freelist的对象大小都是8B。
 
-![CentralCache](https://github.com/gongzhaoxu/ConcurrentMemoryPool/img/CentralCache.png)
+![CentralCache](https://raw.githubusercontent.com/gongzhaoxu/ConcurrentMemoryPool/master/img/CentralCache.png)
 
 #### 申请内存的过程
 
@@ -95,7 +95,7 @@ central cache也是一个哈希桶结构，他的哈希桶的映射关系跟thre
 
 PageCache依然用的桶结构，每个桶下挂的一个Span链表。不过此时的映射规则与ThreadCache和CentralCache不同，一共128个桶，即1页到128页。
 
-![PageCache](https://github.com/gongzhaoxu/ConcurrentMemoryPool/img/PageCache.png)
+![PageCache](https://raw.githubusercontent.com/gongzhaoxu/ConcurrentMemoryPool/master/img/PageCache.png)
 
 #### 申请内存过程
 
